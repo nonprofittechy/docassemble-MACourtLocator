@@ -1,0 +1,238 @@
+---
+metadata:
+  title: |
+    Massachusetts Court Locator
+---
+modules:
+  - docassemble.MACourts.macourts
+#---
+#features:
+#  css: locator.css
+---
+objects:
+  - macourts: MACourtList.using(courts=['housing_courts','bmc','district_courts','superior_courts','land_court', 'juvenile_courts', 'probate_and_family_courts'])
+  - address: Address
+  - city_only_address: City
+  - addresses: DAList.using(object_type=Address, there_are_any=True)
+---
+features:
+  question help button: True
+---
+mandatory: True
+code: |
+  search_type
+  if search_type == "address":
+    address.address
+    lookup_address = [address]
+  elif search_type == "multiple_addresses":
+    addresses.gather()
+    lookup_address = addresses
+  elif search_type == "city":
+    city_only_address.city
+    lookup_address = [city_only_address]
+  else:
+    court_choice = court_matching_name
+  
+  court_information
+---
+code: |
+    city_only_address.city = city_only
+---
+code: |
+  court_matching_name = next(iter([court for court in macourts if court.name == court_name]))
+---
+question: |
+  Massachusetts Court Locator Tool
+subquestion: |
+  Use this tool to find a court. You can search 
+  by name, city, or by entering an address.
+fields:
+  - no label: search_type
+    input type: radio
+    choices:
+      - Search by name of court: name
+      - Search by city: city
+      - Find courts that serve your address: address
+      - Look up multiple addresses at once: multiple_addresses
+  - Court name: court_name
+    datatype: combobox
+    code: |
+      [[str(court), court.short_label()] for court in macourts]
+    show if: 
+      variable: search_type
+      is: "name"
+  - City: city_only
+    show if: 
+      variable: search_type
+      is: "city"
+  - note: |
+      Please note: to find a Boston Municipal Court or Juvenile Court,
+      you need to enter a full address. City name is not enough.
+    js show if:
+      val("city_only") == "Boston" || val("city_only") == "boston" || val("city_only") == "Winthrop" || val("city_only") == "winthrop"
+  - Limit court types: filter_courts
+    datatype: yesno
+    js show if: |
+      val("search_type") == "address" || val("search_type") == "city" || val("search_type") == "multiple_addresses"
+  - Court types: court_types
+    show if: filter_courts
+    datatype: checkboxes
+    code: court_options
+help: 
+  label: |
+    About
+  content: |
+    This is an unofficial tool built by the Suffolk Law School
+    [Legal Innovation and Technology Lab](https://suffolklitlab.org). It
+    is not sponsored or endorsed by the Massachusetts Trial Court.
+    
+    Built on work by [Greater Boston Legal Services](https://www.gbls.org)
+    and with assistance of [Suffolk Law School](https://www.suffolk.edu/law)
+    students, volunteers, and work by 
+    [AppGeo](https://www.appgeo.com/appgeo-data-detectives-the-case-of-boston-courthouse-jurisdiction/).
+    
+    All errors are ours. Please check with the clerk when filing.
+---
+variable name: court_options
+data:
+  - District Court
+  - Boston Municipal Court
+  - Superior Court
+  - Housing Court
+  - Probate and Family Court
+  - Juvenile Court
+  - Land Court  
+---
+id: enter an address
+question: |
+  Enter an address
+fields:
+  - Street: address.address
+    address autocomplete: True
+  - City: address.city
+  - State: address.state
+    code: states_list()
+    default: MA
+  - Zip: address.zip
+    required: False
+---
+id: enter an address
+question: |
+  Enter the addresses you want to match
+subquestion: |
+  Click ${word("Add another")} to find courts that match
+  more than one address.
+fields:
+  - Street: addresses[i].address
+    address autocomplete: True
+  - City: addresses[i].city
+  - State: addresses[i].state
+    code: states_list()
+    default: MA
+  - Zip: addresses[i].zip
+list collect: True
+---
+code: |  
+  courts = court_types.true_values() if filter_courts else court_options
+  all_matches = macourts.matching_courts(lookup_address, court_types=courts)
+  filtered = combined_locations(all_matches)
+---      
+id: choose a court
+question: |
+  Pick a court
+subquestion: |
+  % if len(all_matches) > 0:
+  Below is a map of the ${comma_and_list(courts)} court(s) that serve the
+  address(es) you gave us.
+  
+  ${map_of(combined_locations(all_matches))}
+  % else:
+  We didn't find any matching ${comma_and_list(courts)} court(s) that serve the address(es) you gave us.
+  % endif
+
+  Choose a court from the list below.
+fields:
+  - no label: court_choice
+    datatype: object_radio
+    choices: all_matches
+    none of the above: True
+    disable others: True
+    object labeler: |
+      lambda y: y.short_description()
+    show if:
+      code: |
+        len(all_matches)
+  - note: |
+      Does the list above look wrong? If you think you should file in a
+      court we didn't list, choose from the full list below.
+    show if: 
+      code: |
+        len(all_matches)
+  - no label: court_choice
+    datatype: object
+    object labeler: |
+      lambda y: y.short_label()
+    choices: macourts    
+help: 
+  label: |
+    How do I pick a court?
+  content: |
+    If you are responding to a case someone else filed, you may not
+    get to choose your court. But if you are starting a new case, you have
+    a choice. How do you know which court to choose?
+  
+    Massachusetts has 7 trial court departments:
+    
+    * District Court
+    * Boston Municipal Court (BMC)
+    * Superior Court
+    * Housing Court
+    * Probate and Family Court
+    * Juvenile Court
+    * Land Court
+    
+    The District Court, BMC, and Superior Court are all courts that can hear
+    any type of case. The Land Court, Probate and Family, Juvenile Court, and
+    Housing Court are all **specialist** courts that hear one kind of case.
+    They have may have judges with special training as well as special 
+    resources available.
+    
+    For example, the Housing Court has trained mediators, a special
+    program for tenants with disabilities, and legal help available on-site
+    on the day that eviction hearings are held.
+    
+    Different courts can make different kinds of decisions. Not every court
+    can give you every kind of help. For example, you cannot file a housing
+    discrimination case in the District Court. You can only ask for visitation
+    in the Probate and Family Court.
+    
+    Depending on where you live, different courts may be further or closer to
+    your address. There are about 100 district courts all over the state,
+    but each county has only one or a few Superior Courts or specialty
+    courts.
+    
+    Choosing a court means thinking about what kind of help you need, as well
+    as which court you can get transportation to on the day of your hearing.
+    
+    Only you know the right choice.
+    
+    You can also view the court selection guidance at [mass.gov](https://www.mass.gov/courthouse-locator).
+---
+id: court selection display
+event: court_information
+question: |
+  Your selection
+subquestion: |
+  #### ${court_choice}
+  **Court code: ${court_choice.court_code}**  
+  ${court_choice.description}
+
+  Phone: ${court_choice.phone}    
+  Fax: ${court_choice.fax}    
+  Address: ${court_choice.address.on_one_line()}
+  
+  Map: ${map_of(court_choice.address)}    
+buttons:
+  - Exit: exit
+    url: https://suffolklitlab.org
+  - Restart: restart
