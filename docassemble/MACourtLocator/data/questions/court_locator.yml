@@ -19,6 +19,7 @@ features:
   question help button: True
 ---
 mandatory: True
+scan for variables: False
 code: |
   search_type
   if search_type == "address":
@@ -33,7 +34,12 @@ code: |
     # city_only_debug
     lookup_address = [city_only_address]
   else:
-    court_choice = court_matching_name
+    if len(all_name_matches) == 1:
+      court_choice = next(iter(all_name_matches))
+    elif not all_name_matches:
+      court_choice = dropdown_choice
+    else:
+      all_matches = all_name_matches
   
   court_information
 ---
@@ -46,7 +52,11 @@ question: |
 continue button field: city_only_debug
 ---
 code: |
-  court_matching_name = next(iter([court for court in macourts if court.name == court_name]))
+  all_name_matches = [court for court in macourts if court_name.lower() in court.name.lower()]
+---
+question: |
+  ${all_name_matches}
+continue button field: debug_all_matches
 ---
 question: |
   Massachusetts Court Locator Tool
@@ -110,6 +120,17 @@ data:
   - Juvenile Court
   - Land Court  
 ---
+question: |
+  We didn't find a matching court
+subquestion: |
+  Choose from the full list of courts below
+fields:
+  - Choose a court: dropdown_choice
+    datatype: object
+    choices: macourts
+    object labeler: |
+      lambda y: y.short_label()
+---
 id: enter an address
 question: |
   Enter an address
@@ -140,8 +161,13 @@ fields:
 list collect: True
 ---
 code: |  
-  courts = court_types.true_values() if filter_courts else court_options
-  all_matches = macourts.matching_courts(lookup_address, court_types=courts)
+  if search_type == "name":
+    courts = court_options
+    all_matches = all_name_matches
+  else:
+    courts = court_types.true_values() if filter_courts else court_options
+    all_matches = macourts.matching_courts(lookup_address, court_types=courts)
+    
   filtered = combined_locations(all_matches)
 ---      
 id: choose a court
