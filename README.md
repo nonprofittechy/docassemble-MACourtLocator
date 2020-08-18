@@ -4,5 +4,4 @@ A court locator tool that interfaces with the MACourts class
 
 ## Author
 
-System Administrator, admin@admin.com
-
+Quinten Steenhuis, Suffolk Law School

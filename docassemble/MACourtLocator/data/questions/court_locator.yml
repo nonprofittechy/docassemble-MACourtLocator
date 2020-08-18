@@ -29,6 +29,8 @@ code: |
     lookup_address = addresses
   elif search_type == "city":
     city_only_address.city
+    city_only_address.state
+    # city_only_debug
     lookup_address = [city_only_address]
   else:
     court_choice = court_matching_name
@@ -37,6 +39,11 @@ code: |
 ---
 code: |
     city_only_address.city = city_only
+    city_only_address.state = "MA"    
+---
+question: |
+  ${city_only_address}
+continue button field: city_only_debug
 ---
 code: |
   court_matching_name = next(iter([court for court in macourts if court.name == court_name]))

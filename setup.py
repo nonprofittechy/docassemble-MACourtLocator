@@ -43,9 +43,9 @@ def find_package_data(where='.', package='', exclude=standard_exclude, exclude_d
     return out
 
 setup(name='docassemble.MACourtLocator',
-      version='0.0.1',
+      version='0.0.2',
       description=('A court locator tool that interfaces with the MACourts class'),
-      long_description='# docassemble.MACourtLocator\n\nA court locator tool that interfaces with the MACourts class\n\n## Author\n\nSystem Administrator, admin@admin.com\n\n',
+      long_description='# docassemble.MACourtLocator\r\n\r\nA court locator tool that interfaces with the MACourts class\r\n\r\n## Author\r\n\r\nQuinten Steenhuis, Suffolk Law School\r\n',
       long_description_content_type='text/markdown',
       author='Quinten Steenhuis',
       author_email='qsteenhuis@suffolk.edu',
